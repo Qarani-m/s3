@@ -236,20 +236,38 @@ func (h *BucketHandler) GetBucketVersioning(c *gin.Context) {
 
 
 // // SetBucketLifecycle handles setting lifecycle rules
-// // PUT /:bucketId/lifecycle
+// SetBucketLifecycle handles setting lifecycle rules for a bucket.
+// PUT /:bucketId/lifecycle
 func (h *BucketHandler) SetBucketLifecycle(c *gin.Context) {
-	bucketID := c.Param("bucketId")
-	
-	var input dto.LifecycleInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON payload"})
-		return
-	}
-	
-	if err := h.bucketService.SetBucketLifecycle(c.Request.Context(), bucketID, input); err != nil {
+    bucketID := c.Param("bucketId")
+
+fmt.Println	("-------------------------------------------p%w",bucketID)
+    var input dto.SetLifecycleInput
+    if err := c.ShouldBindJSON(&input); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON payload"})
+        return
+    }
+
+    if err := h.bucketService.SetBucketLifecycle(c.Request.Context(), bucketID, input); err != nil {
+        
+		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	
-	c.JSON(http.StatusOK, gin.H{"message": "lifecycle rules updated"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "lifecycle rules updated"})
+}
+
+// GetBucketLifecycle handles fetching lifecycle rules for a bucket.
+// GET /:bucketId/lifecycle
+func (h *BucketHandler) GetBucketLifecycle(c *gin.Context) {
+    bucketID := c.Param("bucketId")
+
+    rules, err := h.bucketService.GetBucketLifecycle(c.Request.Context(), bucketID)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"rules": rules})
 }

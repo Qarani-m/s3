@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"strings"
@@ -278,16 +279,36 @@ func (s *BucketService) GetBucketVersioning(ctx context.Context, bucketID string
 
 
 
+func (s *BucketService) SetBucketLifecycle(ctx context.Context, bucketID string, input dto.SetLifecycleInput) error {
+	for _, ruleInput := range input.Rules {
+		// Map DTO to domain
+		rule := domain.LifecycleRule{
+			ID:                     ruleInput.ID,
+			Prefix:                 ruleInput.Prefix,
+			Status:                 ruleInput.Status,
+			ExpirationDays:         ruleInput.ExpirationDays,
+			TransitionDays:         ruleInput.TransitionDays,
+			TransitionStorageClass: ruleInput.TransitionStorageClass,
+		}
 
+		// Marshal rule to JSON for storage
+		ruleJSON, err := json.Marshal(rule)
+		if err != nil {
+			return fmt.Errorf("failed to marshal rule: %w", err)
+		}
 
-func (s *BucketService) SetBucketLifecycle(ctx context.Context, bucketID string, input dto.LifecycleInput) error {
-	bucket, err := s.repo.GetBucketByID(ctx, bucketID)
-	if err != nil {
-		return fmt.Errorf("bucket not found: %w", err)
+if err := 		s.repo.UpsertLifecycleRule(ctx, bucketID, ruleJSON); err != nil {
+			return fmt.Errorf("failed to save lifecycle rule: %w", err)
+		}
 	}
-	if err := s.storage.SetBucketLifecycle(ctx, bucket.Name, input); err != nil {
-		return fmt.Errorf("failed to set lifecycle: %w", err)
-	}
-	
 	return nil
+}
+
+func (s *BucketService) GetBucketLifecycle(ctx context.Context, bucketID string) ([]domain.LifecycleRule, error) {
+	rules, err := s.repo.GetLifecycleRules(ctx, bucketID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get lifecycle rules: %w", err)
+	}
+
+	return rules, nil
 }

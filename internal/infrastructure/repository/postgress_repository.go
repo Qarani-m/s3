@@ -24,6 +24,48 @@ type PostgresRepository struct {
 	db *sql.DB
 }
 
+func (r *PostgresRepository) GetBucketVersioning(ctx context.Context, bucketID string) (domain.VersioningStatus, error) {
+	const query = `
+		SELECT versioning_status
+		FROM buckets
+		WHERE id = $1;
+	`
+
+	var status string
+	err := r.db.QueryRowContext(ctx, query, bucketID).Scan(&status)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("bucket not found: %w", err)
+		}
+		return "", fmt.Errorf("failed to get versioning status: %w", err)
+	}
+
+	return domain.VersioningStatus(status), nil
+}
+
+func (r *PostgresRepository) SetBucketVersioning(ctx context.Context, bucketID string, status domain.VersioningStatus) error {
+	const query = `
+		UPDATE buckets
+		SET versioning_status = $1,
+		    updated_at = NOW()
+		WHERE id = $2;
+	`
+
+	res, err := r.db.ExecContext(ctx, query, status, bucketID)
+	if err != nil {
+		return fmt.Errorf("failed to update versioning status: %w", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check update result: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("bucket not found")
+	}
+
+	return nil
+}
 func (r *PostgresRepository) AppendPolicyHistory(ctx context.Context, bucketID string, policy *domain.Policy, actor string) error {
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
@@ -453,7 +495,7 @@ func (r *PostgresRepository) IncrementPolicyVersionAndUpdateBucket(ctx context.C
 			return err
 		}
 	}
- 
+
 	return nil
 }
 
@@ -488,6 +530,42 @@ func (r *PostgresRepository) GetBucketByName(ctx context.Context, name string) (
 
 	return bucket, nil
 
+}
+func (r *PostgresRepository) UpsertLifecycleRule(ctx context.Context, bucketID string, ruleJSON []byte) error {
+    query := `
+        INSERT INTO bucket_lifecycle_rules (bucket_id, rule, updated_at)
+        VALUES ($1, $2::jsonb, NOW())
+        ON CONFLICT (bucket_id)
+        DO UPDATE SET rule = EXCLUDED.rule, updated_at = NOW();
+    `
+    _, err := r.db.ExecContext(ctx, query, bucketID, ruleJSON)
+    return err
+}
+
+
+func (r *PostgresRepository) GetLifecycleRules(ctx context.Context, bucketID string) ([]domain.LifecycleRule, error) {
+    query := `SELECT rule FROM bucket_lifecycle_rules WHERE bucket_id = $1`
+    rows, err := r.db.QueryContext(ctx, query, bucketID)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var results []domain.LifecycleRule
+    for rows.Next() {
+        var ruleJSON []byte
+        if err := rows.Scan(&ruleJSON); err != nil {
+            return nil, err
+        }
+
+        var rule domain.LifecycleRule
+        if err := json.Unmarshal(ruleJSON, &rule); err != nil {
+            return nil, err
+        }
+        results = append(results, rule)
+    }
+
+    return results, nil
 }
 
 // =============================================================================

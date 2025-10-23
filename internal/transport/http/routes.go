@@ -117,7 +117,9 @@ func registerBucketRoutes(v1 *gin.RouterGroup, handler *BucketHandler) {
 		
 		buckets.GET("/:bucketId/versioning", handler.GetBucketVersioning)
 		// // Set bucket lifecycle rules
-		buckets.PUT("/:bucketId/lifecycle", handler.SetBucketLifecycle)
+buckets.PUT("/:bucketId/lifecycle", handler.SetBucketLifecycle)
+buckets.GET("/:bucketId/lifecycle", handler.GetBucketLifecycle)
+
 	}
 }
 

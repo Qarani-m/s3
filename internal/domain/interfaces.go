@@ -10,7 +10,7 @@ type StoragePort interface {
 	SaveObject(ctx context.Context, bucket, key string, data []byte, metadata map[string]string) error
 	GetObject(ctx context.Context, bucket, key string) ([]byte, error)
 	DeleteObject(ctx context.Context, bucket, key string) error
-	CreateBucket(ctx context.Context, name string) (string,error)
+	CreateBucket(ctx context.Context, name string) (string, error)
 	DeleteBucket(ctx context.Context, bucketId string) error
 
 	SetBucketVersioning(ctx context.Context, name string, enabled bool) error
@@ -96,12 +96,20 @@ type RepositoryPort interface {
 	UpdateMultipartUpload(ctx context.Context, upload *MultipartUpload) error
 	ListMultipartUploadsByBucket(ctx context.Context, bucketID string) ([]MultipartUpload, error)
 
-
 	// 🔐 Policy-related operations
 	IncrementPolicyVersionAndUpdateBucket(ctx context.Context, bucket *Bucket) error
 	AppendPolicyHistory(ctx context.Context, bucketID string, policy *Policy, actor string) error
+	// Versioning
+	SetBucketVersioning(ctx context.Context, bucketID string, status VersioningStatus) error
+	GetBucketVersioning(ctx context.Context, bucketID string) (VersioningStatus, error)
+
+
+GetLifecycleRules(ctx context.Context, bucketID string) ([]LifecycleRule, error)
+    UpsertLifecycleRule(ctx context.Context, bucketID string, ruleJSON []byte) error
+
 
 }
+
 
 type Logger interface {
 	Info(ctx context.Context, msg string, fields map[string]interface{})
