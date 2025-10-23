@@ -95,6 +95,12 @@ type RepositoryPort interface {
 	GetMultipartUploadByUploadID(ctx context.Context, uploadID string) (*MultipartUpload, error)
 	UpdateMultipartUpload(ctx context.Context, upload *MultipartUpload) error
 	ListMultipartUploadsByBucket(ctx context.Context, bucketID string) ([]MultipartUpload, error)
+
+
+	// 🔐 Policy-related operations
+	IncrementPolicyVersionAndUpdateBucket(ctx context.Context, bucket *Bucket) error
+	AppendPolicyHistory(ctx context.Context, bucketID string, policy *Policy, actor string) error
+
 }
 
 type Logger interface {

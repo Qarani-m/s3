@@ -24,6 +24,24 @@ type PostgresRepository struct {
 	db *sql.DB
 }
 
+func (r *PostgresRepository) AppendPolicyHistory(ctx context.Context, bucketID string, policy *domain.Policy, actor string) error {
+	policyJSON, err := json.Marshal(policy)
+	if err != nil {
+		return fmt.Errorf("failed to marshal policy for history: %w", err)
+	}
+
+	query := `
+		INSERT INTO bucket_policy_history (bucket_id, version, actor, policy, created_at)
+		VALUES ($1, COALESCE((SELECT MAX(version) + 1 FROM bucket_policy_history WHERE bucket_id = $1), 1), $2, $3::jsonb, NOW())
+	`
+	_, err = r.db.ExecContext(ctx, query, bucketID, actor, policyJSON)
+	if err != nil {
+		return fmt.Errorf("failed to append policy history: %w", err)
+	}
+
+	return nil
+}
+
 // GetFileByKey implements domain.RepositoryPort.
 func (r *PostgresRepository) GetFileByKey(ctx context.Context, bucketID string, key string) (*domain.File, error) {
 	query := `
@@ -271,6 +289,7 @@ func (r *PostgresRepository) ListBatchOperations(ctx context.Context, status str
 
 	return operations, nil
 }
+
 // SavePresignedURL implements domain.RepositoryPort.
 func (r *PostgresRepository) SavePresignedURL(ctx context.Context, presignedUrl *domain.PresignedURL) error {
 	query := `
@@ -354,15 +373,14 @@ func (r *PostgresRepository) UpdateBucket(ctx context.Context, bucket *domain.Bu
 	var err error
 	var policyParam interface{}
 
- 
 	if bucket.Policy != nil {
 		policyParam, err = json.Marshal(bucket.Policy)
 		if err != nil {
 			fmt.Println("Error marshalling policy:", err)
 			return nil, fmt.Errorf("failed to marshal policy: %w", err)
-		} 
+		}
 	} else {
-		policyParam = nil 
+		policyParam = nil
 	}
 
 	query := `UPDATE buckets 
@@ -371,13 +389,12 @@ func (r *PostgresRepository) UpdateBucket(ctx context.Context, bucket *domain.Bu
 	          RETURNING id, name, created_at, updated_at, policy`
 
 	var returnedPolicy []byte
- 
+
 	err = r.db.QueryRowContext(ctx, query, bucket.Name, bucket.UpdatedAt, policyParam, bucket.ID).Scan(
 		&bucket.ID, &bucket.Name, &bucket.CreatedAt, &bucket.UpdatedAt, &returnedPolicy,
 	)
- 
 
-	if err != nil { 
+	if err != nil {
 		return nil, err
 	}
 
@@ -385,8 +402,8 @@ func (r *PostgresRepository) UpdateBucket(ctx context.Context, bucket *domain.Bu
 		if err := json.Unmarshal(returnedPolicy, &bucket.Policy); err != nil {
 			fmt.Println("Error unmarshalling returned policy:", err)
 			return nil, fmt.Errorf("failed to unmarshal policy: %w", err)
-		} 
-	} else { 
+		}
+	} else {
 		bucket.Policy = nil
 	}
 
@@ -403,6 +420,41 @@ func (r *PostgresRepository) DeleteBucket(ctx context.Context, bucketID string) 
 // NewPostgresRepository creates a new PostgreSQL repository instance
 func NewPostgresRepository(db *sql.DB) *PostgresRepository {
 	return &PostgresRepository{db: db}
+}
+func (r *PostgresRepository) IncrementPolicyVersionAndUpdateBucket(ctx context.Context, bucket *domain.Bucket) error {
+	// Marshall policy
+	var policyParam interface{}
+	if bucket.Policy != nil {
+		b, err := json.Marshal(bucket.Policy)
+		if err != nil {
+			return err
+		}
+		policyParam = b
+	} else {
+		policyParam = nil
+	}
+
+	query := `UPDATE buckets 
+              SET policy = $1::jsonb, updated_at = $2, policy_version = policy_version + 1
+              WHERE id = $3
+              RETURNING id, name, created_at, updated_at, policy, policy_version`
+
+	var returnedPolicy []byte
+	var policyVersion int
+	err := r.db.QueryRowContext(ctx, query, policyParam, bucket.UpdatedAt, bucket.ID).Scan(
+		&bucket.ID, &bucket.Name, &bucket.CreatedAt, &bucket.UpdatedAt, &returnedPolicy, &policyVersion,
+	)
+	if err != nil {
+		return err
+	}
+	bucket.Policy = nil
+	if len(returnedPolicy) > 0 {
+		if err := json.Unmarshal(returnedPolicy, &bucket.Policy); err != nil {
+			return err
+		}
+	}
+ 
+	return nil
 }
 
 func (r *PostgresRepository) GetBucketByName(ctx context.Context, name string) (domain.Bucket, error) {
@@ -609,12 +661,11 @@ func (r *PostgresRepository) ListBuckets(ctx context.Context) ([]domain.Bucket, 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-query := `
+	query := `
 	SELECT id, name, owner_id, created_at, updated_at
 	FROM buckets
 	ORDER BY created_at DESC
 `
-
 
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
@@ -625,13 +676,13 @@ query := `
 	var buckets []domain.Bucket
 	for rows.Next() {
 		var bucket domain.Bucket
-	err := rows.Scan(
-	&bucket.ID,
-	&bucket.Name,
-	&bucket.OwnerID,
-	&bucket.CreatedAt,
-	&bucket.UpdatedAt,
-)
+		err := rows.Scan(
+			&bucket.ID,
+			&bucket.Name,
+			&bucket.OwnerID,
+			&bucket.CreatedAt,
+			&bucket.UpdatedAt,
+		)
 
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan bucket: %w", err)
@@ -898,12 +949,6 @@ func (r *PostgresRepository) ListPresignedURLs(ctx context.Context, bucketID str
 	return urls, nil
 }
 
-
-
-
-
-
-
 // ListFilesByPrefix implements domain.RepositoryPort.
 func (r *PostgresRepository) ListFilesByPrefix(ctx context.Context, bucketID, prefix string, limit int) ([]domain.File, error) {
 	query := `
@@ -976,11 +1021,6 @@ func (r *PostgresRepository) CountFilesByPrefix(ctx context.Context, bucketID, p
 
 	return count, nil
 }
-
-
-
-
-
 
 // SearchFilesByName implements domain.RepositoryPort.
 func (r *PostgresRepository) SearchFilesByName(ctx context.Context, bucketID, query string, limit int) ([]domain.File, error) {
@@ -1244,9 +1284,6 @@ func (r *PostgresRepository) scanFiles(rows *sql.Rows) ([]domain.File, error) {
 	return files, nil
 }
 
-
-
-
 func (r *PostgresRepository) SaveWebhook(ctx context.Context, webhook *domain.Webhook) error {
 	eventsJSON, _ := json.Marshal(webhook.Events)
 	headersJSON, _ := json.Marshal(webhook.Headers)
@@ -1352,12 +1389,9 @@ func (r *PostgresRepository) ListWebhookDeliveries(ctx context.Context, webhookI
 	return deliveries, nil
 }
 
-
-
-
 func (r *PostgresRepository) GetAccessLogsByDateRange(ctx context.Context, start, end time.Time) ([]domain.AccessLog, error) {
 	query := `SELECT id, file_id, action, user_id, timestamp, size FROM access_logs WHERE timestamp BETWEEN $1 AND $2 ORDER BY timestamp`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, start, end)
 	if err != nil {
 		return nil, err
@@ -1375,7 +1409,7 @@ func (r *PostgresRepository) GetAccessLogsByDateRange(ctx context.Context, start
 
 func (r *PostgresRepository) GetAccessLogsByUser(ctx context.Context, userID string, limit int) ([]domain.AccessLog, error) {
 	query := `SELECT id, file_id, action, user_id, timestamp, size FROM access_logs WHERE user_id=$1 ORDER BY timestamp DESC LIMIT $2`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, userID, limit)
 	if err != nil {
 		return nil, err
@@ -1391,7 +1425,11 @@ func (r *PostgresRepository) GetAccessLogsByUser(ctx context.Context, userID str
 	return logs, nil
 }
 
-func (r *PostgresRepository) GetPopularFiles(ctx context.Context, limit int) ([]struct{FileID, Key string; AccessCount int; TotalSize int64}, error) {
+func (r *PostgresRepository) GetPopularFiles(ctx context.Context, limit int) ([]struct {
+	FileID, Key string
+	AccessCount int
+	TotalSize   int64
+}, error) {
 	query := `
 		SELECT f.id, f.key, COUNT(al.id) as access_count, f.size
 		FROM files f
@@ -1399,16 +1437,24 @@ func (r *PostgresRepository) GetPopularFiles(ctx context.Context, limit int) ([]
 		GROUP BY f.id, f.key, f.size
 		ORDER BY access_count DESC
 		LIMIT $1`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	results := []struct{FileID, Key string; AccessCount int; TotalSize int64}{}
+	results := []struct {
+		FileID, Key string
+		AccessCount int
+		TotalSize   int64
+	}{}
 	for rows.Next() {
-		var r struct{FileID, Key string; AccessCount int; TotalSize int64}
+		var r struct {
+			FileID, Key string
+			AccessCount int
+			TotalSize   int64
+		}
 		rows.Scan(&r.FileID, &r.Key, &r.AccessCount, &r.TotalSize)
 		results = append(results, r)
 	}
@@ -1420,7 +1466,6 @@ func (r *PostgresRepository) SaveAccessLog(ctx context.Context, log *domain.Acce
 	_, err := r.db.ExecContext(ctx, query, log.ID, log.FileID, log.Action, log.UserID, log.Timestamp, log.Size)
 	return err
 }
-
 
 func (r *PostgresRepository) SaveMultipartUpload(ctx context.Context, upload *domain.MultipartUpload) error {
 	partsJSON, _ := json.Marshal(upload.Parts)
@@ -1434,12 +1479,12 @@ func (r *PostgresRepository) SaveMultipartUpload(ctx context.Context, upload *do
 func (r *PostgresRepository) GetMultipartUploadByUploadID(ctx context.Context, uploadID string) (*domain.MultipartUpload, error) {
 	query := `SELECT id, upload_id, bucket_id, key, status, parts, created_at, updated_at
 		FROM multipart_uploads WHERE upload_id=$1`
-	
+
 	var upload domain.MultipartUpload
 	var partsJSON []byte
 	err := r.db.QueryRowContext(ctx, query, uploadID).Scan(&upload.ID, &upload.UploadID,
 		&upload.BucketID, &upload.Key, &upload.Status, &partsJSON, &upload.CreatedAt, &upload.UpdatedAt)
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -1457,7 +1502,7 @@ func (r *PostgresRepository) UpdateMultipartUpload(ctx context.Context, upload *
 func (r *PostgresRepository) ListMultipartUploadsByBucket(ctx context.Context, bucketID string) ([]domain.MultipartUpload, error) {
 	query := `SELECT id, upload_id, bucket_id, key, status, parts, created_at, updated_at
 		FROM multipart_uploads WHERE bucket_id=$1 AND status='initiated' ORDER BY created_at DESC`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, bucketID)
 	if err != nil {
 		return nil, err

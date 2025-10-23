@@ -2,11 +2,14 @@ package application
 
 import (
 	"context"
- 
+	"errors"
+	"os"
+	"strings"
+
 	"fmt"
 	"s3/internal/domain"
 	"s3/internal/infrastructure/dto"
-	"time" 
+	"time"
 )
 
 // BucketService provides business logic for managing buckets.
@@ -153,43 +156,73 @@ func (s *BucketService) GetBucketStats(ctx context.Context, bucketID string) (*d
 
 func (s *BucketService) GetBucketPolicy(ctx context.Context, bucketID string) (*dto.BucketPolicyOutput, error) {
 	bucket, err := s.repo.GetBucketByID(ctx, bucketID)
-
-	// a0e8a740-7989-4302-9fb3-f25aec4ae91b
-
-		fmt.Println("----")
-
-	fmt.Println(bucket.ID)
-	fmt.Println("----")
-	
 	if err != nil {
 		return nil, fmt.Errorf("bucket not found: %w", err)
 	}
-	
+
 	policyStr := ""
 	if bucket.Policy != nil {
 		policyStr = bucket.Policy.String()
 	}
-	
+
 	return &dto.BucketPolicyOutput{
 		BucketID: bucketID,
 		Policy:   policyStr,
 	}, nil
 }
 
-func (s *BucketService) UpdateBucketPolicy(ctx context.Context, bucketID string, input dto.UpdatePolicyInput) error {
+func (s *BucketService) UpdateBucketPolicy(ctx context.Context, bucketID string, input dto.UpdatePolicyInput, actor string) error {
+	// actor is "user:<id>" or "role:admin"
 	bucket, err := s.repo.GetBucketByID(ctx, bucketID)
 	if err != nil {
 		return fmt.Errorf("bucket not found: %w", err)
 	}
-	bucket.Policy = &domain.Policy{}
-	bucket.UpdatedAt = time.Now()
-	
-	if _, err := s.repo.UpdateBucket(ctx, &bucket); err != nil {
-		return fmt.Errorf("failed to update policy: %w", err)
+		fmt.Println("-----d--------31",  IsAdmin(actor) )
+
+	// Permission: only owner or admin can update
+	if actor != fmt.Sprintf("user:%s", bucket.OwnerID) && !IsAdmin(actor) {
+		return errors.New("forbidden: only bucket owner or admin can update policy")
 	}
 
-		fmt.Println(input)
-	
+// Convert DTO -> domain.Policy
+policy := domain.Policy{
+	Version: input.Version,
+	Statement: []domain.Statement{
+		{
+			Effect:    domain.Effect(input.Effect),
+			Action:    make([]domain.Action, 0, len(input.Actions)),
+			Resource:  input.Resources,
+			Principal: make([]domain.Principal, 0, len(input.Principals)),
+			Condition: input.Conditions,
+		},
+	},
+}
+
+// convert string slices to typed slices
+for _, a := range input.Actions {
+	policy.Statement[0].Action = append(policy.Statement[0].Action, domain.Action(a))
+}
+
+for _, p := range input.Principals {
+	policy.Statement[0].Principal = append(policy.Statement[0].Principal, domain.Principal(p))
+}
+
+// validate
+if err := policy.Validate(); err != nil {
+	return fmt.Errorf("invalid policy: %w", err)
+}
+
+	// set and save; increment version
+	bucket.Policy = &policy
+	bucket.UpdatedAt = time.Now()
+	if err := s.repo.IncrementPolicyVersionAndUpdateBucket(ctx, &bucket); err != nil {
+		return fmt.Errorf("failed to save policy: %w", err)
+	}
+
+
+	// audit / history - optional
+	_ = s.repo.AppendPolicyHistory(ctx, bucketID, &policy, actor)
+
 	return nil
 }
 
@@ -206,7 +239,25 @@ func (s *BucketService) SetBucketVersioning(ctx context.Context, bucketID string
 	return nil
 }
 
+ 
 
+// isAdmin checks whether the actor (like "user:abc123") is an admin.
+// In MVP mode, we load admin IDs from an env var: ADMIN_USERS=user:abc123,user:def456
+func IsAdmin(actor string) bool {
+	admins := os.Getenv("ADMIN_USERS")
+
+	// fallback for tests only — change or remove for production
+	if strings.TrimSpace(admins) == "" {
+		admins = "user:550e8400-e29b-41d4-a716-446655440000" // <-- dummy admin for testing; remove/override in prod
+	}
+
+	for _, a := range strings.Split(admins, ",") {
+		if strings.TrimSpace(a) == actor {
+			return true
+		}
+	}
+	return false
+}
 
 func (s *BucketService) GetBucketVersioning(ctx context.Context, bucketID string) (*dto.VersioningOutput, error) {
 	bucket, err := s.repo.GetBucketByID(ctx, bucketID)

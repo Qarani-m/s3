@@ -87,6 +87,14 @@ func registerFileRoutes(v1 *gin.RouterGroup, handler *HandlerForFiles) {
 // registerBucketRoutes registers all bucket management routes
 func registerBucketRoutes(v1 *gin.RouterGroup, handler *BucketHandler) {
 	buckets := v1.Group("/buckets")
+	 validator := &middleware.StaticAPIKeyValidator{
+        Keys: map[string]string{
+            "my-secret-api-key": "550e8400-e29b-41d4-a716-446655440000",
+        },
+    }
+	
+
+	  buckets.Use(middleware.APIKeyAuthMiddleware(validator))
 	{
 		// Create new bucket
 		buckets.POST("", handler.CreateBucket)

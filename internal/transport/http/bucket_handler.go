@@ -167,23 +167,36 @@ func (h *BucketHandler) GetBucketPolicy(c *gin.Context) {
 // // UpdateBucketPolicy handles updating bucket policy
 // // PUT /:bucketId/policy
 func (h *BucketHandler) UpdateBucketPolicy(c *gin.Context) {
-	bucketID := c.Param("bucketId")
-	
-	var input dto.UpdatePolicyInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON payload"})
-		return
-	}
+    actorI, ok := c.Get("actor") // set by auth middleware
+    if !ok {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthenticated"})
+        return
+    }
+    actor := actorI.(string)
 
+    bucketID := c.Param("bucketId")
+    var input dto.UpdatePolicyInput
+    if err := c.ShouldBindJSON(&input); err != nil {
+		fmt.Println("-------------1%W",err)
 
-	
-	if err := h.bucketService.UpdateBucketPolicy(c.Request.Context(), bucketID, input); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	
-	c.JSON(http.StatusOK, gin.H{"message": "policy updated"})
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON payload: " + err.Error()})
+        return
+    }
+
+    if err := h.bucketService.UpdateBucketPolicy(c.Request.Context(), bucketID, input, actor); err != nil {
+       
+		fmt.Println("-----d--------1",err)
+		
+		if strings.Contains(err.Error(), "forbidden") {
+            c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+            return
+        }
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"message": "policy updated"})
 }
+
 
 // // SetBucketVersioning handles enabling/disabling versioning
 // // PUT /:bucketId/versioning
