@@ -40,6 +40,14 @@
             <version>3.24.2</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Add this in your pom.xml -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>5.3</version>
+        </dependency>
+
     </dependencies>
 
 </project>

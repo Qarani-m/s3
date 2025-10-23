@@ -1,11 +1,9 @@
 package org.example;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.example.config.ClientConfig;
 
-import org.example.dto.bucket.Bucket;
-import org.example.dto.bucket.CreateBucketInput;
 import org.example.dto.files.FileInfo;
+
 import org.example.http.HttpClient;
 import org.example.services.bucket.FileClient;
 import org.junit.jupiter.api.*;
@@ -24,7 +22,7 @@ public class FilesIntegrationTests {
 
     @BeforeAll
     static void setup() throws Exception {
-        ClientConfig config = new ClientConfig("http://localhost:8080", null, 10);
+        ClientConfig config = new ClientConfig( null, 10);
         fileClient = new FileClient(new HttpClient(config));
 
         // Create dummy file if it doesn’t exist

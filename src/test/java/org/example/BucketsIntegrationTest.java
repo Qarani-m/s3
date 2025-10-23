@@ -3,6 +3,8 @@ package org.example;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.example.config.ClientConfig;
 import org.example.dto.bucket.*;
+import org.example.exceptions.ApiExceptions;
+import org.example.services.bucket.BucketClient;
 import org.junit.jupiter.api.*;
 
 import java.util.Arrays;
@@ -11,16 +13,18 @@ import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class BucketsIntegrationTest {
 
+    private static final String BUCKET_ID = "archive-bubgo";
     private static S3CloneClient client;
     private static String bucketId;
 
     @BeforeAll
     static void setup() {
         ClientConfig config = new ClientConfig(
-                "http://localhost:8080",
+
                 "550e8400-e29b-41d4-a716-446655440000",
                 10
         );
@@ -59,7 +63,7 @@ public class BucketsIntegrationTest {
 
     @Test
     @Order(3)
-    void testGetBucketInfo() throws JsonProcessingException {
+    void testGetBucketInfo() throws ApiExceptions, JsonProcessingException {
         Bucket b = client.buckets().get(bucketId);
         assertThat(b).isNotNull();
         assertThat(b.getBucketId()).isEqualTo(bucketId);
@@ -116,6 +120,50 @@ public class BucketsIntegrationTest {
         if (bucketId != null) {
             client.buckets().delete(bucketId);
             System.out.println("🗑️ Bucket deleted successfully.");
+        }
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("Enable bucket versioning")
+    void testEnableVersioning() {
+        try {
+            VersioningInput input = new VersioningInput();
+            input.setEnabled(true);
+
+            client.buckets().setVersioning(BUCKET_ID, input);
+            System.out.println("✅ Versioning enabled for bucket " + BUCKET_ID);
+
+            // Fetch and verify
+            VersioningOutput output = client.buckets().getVersioning(BUCKET_ID);
+            assertThat(output).isNotNull();
+            assertThat(output.getStatus()).isEqualTo("Enabled");
+
+            System.out.println("📄 Versioning status: " + output.getStatus());
+        } catch (Exception e) {
+            Assertions.fail("❌ Failed to enable versioning: " + e.getMessage(), e);
+        }
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("Disable bucket versioning")
+    void testDisableVersioning() {
+        try {
+            VersioningInput input = new VersioningInput();
+            input.setEnabled(false);
+
+            BucketClient bucketClient;
+            client.buckets().setVersioning(BUCKET_ID, input);
+            System.out.println("✅ Versioning disabled for bucket " + BUCKET_ID);
+
+            VersioningOutput output = client.buckets().getVersioning(BUCKET_ID);
+            assertThat(output).isNotNull();
+            assertThat(output.getStatus()).isEqualTo("Suspended");
+
+            System.out.println("📄 Versioning status after disable: " + output.getStatus());
+        } catch (Exception e) {
+            Assertions.fail("❌ Failed to disable versioning: " + e.getMessage(), e);
         }
     }
 }

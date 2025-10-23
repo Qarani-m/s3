@@ -12,7 +12,6 @@ import java.util.Map;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-
 public class FileInfo {
     @JsonProperty("file_id")
     private String id;

@@ -6,8 +6,8 @@ public class ClientConfig {
     private final String apiKey; // optional
     private final int timeoutSeconds;
 
-    public ClientConfig(String baseUrl, String apiKey, int timeoutSeconds) {
-        this.baseUrl = baseUrl;
+    public ClientConfig( String apiKey, int timeoutSeconds) {
+        this.baseUrl = "http://localhost:8080";
         this.apiKey = apiKey;
         this.timeoutSeconds = timeoutSeconds;
     }
