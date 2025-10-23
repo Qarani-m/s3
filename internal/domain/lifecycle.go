@@ -8,3 +8,5 @@ type LifecycleRule struct {
     TransitionDays        int    `json:"transition_days,omitempty"`
     TransitionStorageClass string `json:"transition_storage_class,omitempty"`
 }
+
+ 

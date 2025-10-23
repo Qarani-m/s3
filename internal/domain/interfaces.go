@@ -14,7 +14,7 @@ type StoragePort interface {
 	DeleteBucket(ctx context.Context, bucketId string) error
 
 	SetBucketVersioning(ctx context.Context, name string, enabled bool) error
-	SetBucketLifecycle(ctx context.Context, name string, input dto.LifecycleInput) error
+	RenameBucket(ctx context.Context, oldName string, newName string)error
 
 	CopyObject(
 		ctx context.Context,

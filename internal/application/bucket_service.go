@@ -99,6 +99,10 @@ func (s *BucketService) UpdateBucket(ctx context.Context, bucketID string, input
 		bucket.Name = input.Name
 		bucket.UpdatedAt = time.Now()
 	}
+error:=s.storage.RenameBucket(ctx, bucket.Name, input.Name)
+if error != nil {
+    return nil, fmt.Errorf("failed to rename bucket: %w", err)
+}
 
 	updated, err := s.repo.UpdateBucket(ctx, &bucket)
 	if err != nil {
@@ -123,15 +127,31 @@ func (s *BucketService) DeleteBucket(ctx context.Context, bucketID string) error
 	if len(files) > 0 {
 		return fmt.Errorf("cannot delete bucket with files")
 	}
-	bucket, err := s.repo.GetBucketByID(ctx, bucketID)
+	bucket, err := s.repo.GetBucketByName(ctx, bucketID)
  na:= fmt.Sprintf("bt-%s", bucket.Name)
+
+
+
+
+
+
+
 	if err != nil {
 		return fmt.Errorf("bucket not found: %w", err)
 	}
-	if err := s.storage.DeleteBucket(ctx,na); err != nil {
+	fmt.Println("------------fffff----dfdf>>>%W",na)
+
+
+	if err := s.storage.DeleteBucket(ctx,bucket.Name		); err != nil {
+		fmt.Println("--------------d=======>>>%W",na)
+		fmt.Println("--------------d=======>>>%W",err)
+
+
 		return fmt.Errorf("failed to delete from storage: %w", err)
 	}
 	if err := s.repo.DeleteBucket(ctx, bucketID); err != nil {
+		fmt.Println("--------------d====+++>>>%W",na)
+
 		return fmt.Errorf("failed to delete bucket: %w", err)
 	}
 	return nil

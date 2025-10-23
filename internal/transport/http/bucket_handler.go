@@ -129,6 +129,9 @@ func (h *BucketHandler) DeleteBucket(c *gin.Context) {
 	if err := h.bucketService.DeleteBucket(c.Request.Context(), bucketID); err != nil {
 
 
+
+
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
