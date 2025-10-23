@@ -37,29 +37,29 @@ public class S3EndToEndTest {
                 System.err.println("⚠️ Bucket already exists: " + e.getResponseBody());
             }
 
-//            // -------------------------
-//            // 2️⃣ LIST BUCKETS
-//            // -------------------------
-//            List<Bucket> buckets = client.buckets().list();
-//            System.out.println("📦 Total buckets: " + buckets.size());
-//
-//            // -------------------------
-//            // 3️⃣ GET BUCKET INFO
-//            // -------------------------
-//            if (createdBucket != null) {
-//                Bucket b = client.buckets().get(createdBucket.getBucketId());
-//                System.out.println("ℹ️ Got bucket: " + b.getName());
-//            }
-//
-//            // -------------------------
-//            // 4️⃣ UPDATE BUCKET
-//            // -------------------------
-//            if (createdBucket != null) {
-//                UpdateBucketInput updateInput = new UpdateBucketInput();
-//                updateInput.setName("bt-" + bucketName);
+            // -------------------------
+            // 2️⃣ LIST BUCKETS
+            // -------------------------
+            List<Bucket> buckets = client.buckets().list();
+            System.out.println("📦 Total buckets: " + buckets.size());
+
+            // -------------------------
+            // 3️⃣ GET BUCKET INFO
+            // -------------------------
+            if (createdBucket != null) {
+                Bucket b = client.buckets().get(createdBucket.getBucketId());
+                System.out.println("ℹ️ Got bucket: " + b.getName());
+            }
+
+            // -------------------------
+            // 4️⃣ UPDATE BUCKET rule:You cant rename a bucket
+            // -------------------------
+            if (createdBucket != null) {
+                UpdateBucketInput updateInput = new UpdateBucketInput();
+//                updateInput.setNickName(bucketName);
 //                Bucket updated = client.buckets().update(createdBucket.getBucketId(), updateInput);
 //                System.out.println("📝 Updated bucket name: " + updated.getName());
-//            }
+            }
 
             // -------------------------
             // 5️⃣ POLICY MANAGEMENT
@@ -128,49 +128,23 @@ public class S3EndToEndTest {
                 client.buckets().setLifecycle(bucketId, input);
                 System.out.println("🕓 Lifecycle policy set (30 days).");
             }
-//
-//            // -------------------------
-//            // 8️⃣ FILE UPLOAD
-//            // -------------------------
-//            if (createdBucket != null) {
-//                try {
-//                    File file = new File("C:\\Users\\6D617274696E\\Downloads\\burpsuite_community_windows-x64_v2025_9_5.exe");
-//                    if (!file.exists()) {
-//                        System.out.println("Creating dummy test file...");
-//                        try (var writer = new java.io.FileWriter(file)) {
-//                            writer.write("Hello, this is a test upload!");
-//                        }
-//                    }
-//                    System.out.println("Uploading file to bucket: " + createdBucket.getName());
-//
-//                    // Uncomment when FileClient.upload() is ready
-//                    // FileInfo uploaded = fileClient.upload(createdBucket.getBucketId(), file);
-//                    // System.out.println("✅ File uploaded successfully:");
-//                    // System.out.println("ID: " + uploaded.getId());
-//                    // System.out.println("Key: " + uploaded.getKey());
-//                    // System.out.println("Size: " + uploaded.getSize());
-//                    // System.out.println("MimeType: " + uploaded.getMimeType());
-//                } catch (Exception e) {
-//                    System.err.println("❌ Error during file upload: " + e);
-//                    e.printStackTrace();
-//                }
-//            }
-//
-//            // -------------------------
-//            // 9️⃣ BUCKET STATS
-//            // -------------------------
-//            if (createdBucket != null) {
-//                BucketStats stats = client.buckets().stats(createdBucket.getBucketId());
-//                System.out.println("📊 Total files in bucket: " + stats.getTotalFiles());
-//            }
-//
-//            // -------------------------
-//            // 🔟 CLEANUP (DELETE BUCKET)
-//            // -------------------------
-//            if (createdBucket != null) {
-//                client.buckets().delete(createdBucket.getBucketId());
-//                System.out.println("🗑️ Bucket deleted successfully.");
-//            }
+
+            // -------------------------
+            // 9️⃣ BUCKET STATS
+            // -------------------------
+            if (createdBucket != null) {
+                BucketStats stats = client.buckets().stats(createdBucket.getBucketId());
+                System.out.println("📊 Total files in bucket: " + stats.getTotalFiles());
+            }
+
+            // -------------------------
+            // 🔟 CLEANUP (DELETE BUCKET)
+            // -------------------------
+            if (createdBucket != null) {
+                System.out.println( createdBucket.getBucketId());
+                client.buckets().delete(createdBucket.getBucketId());
+                System.out.println("🗑️ Bucket deleted successfully.");
+            }
 
         } catch (Exception e) {
             System.err.println("❌ Error during end-to-end test: " + e);
