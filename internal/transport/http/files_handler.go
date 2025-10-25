@@ -78,8 +78,11 @@ func (h *HandlerForFiles) ListFiles(c *gin.Context) {
 		return
 	}
 
+
+
+
 	c.JSON(http.StatusOK, gin.H{
-		"bucket_id": bucketID,
+		"bucketId": bucketID,
 		"count":     len(files),
 		"files":     files,
 	})
@@ -90,19 +93,14 @@ func (h *HandlerForFiles) ListFiles(c *gin.Context) {
 func (h *HandlerForFiles) DeleteFile(c *gin.Context) {
 	bucketID := c.Param("bucketId")
 	fileID := c.Param("fileId")
-	key := c.Query("key")
-
-	if key == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "key query parameter is required"})
-		return
-	}
 
 	err := h.deleteService.DeleteFile(c.Request.Context(), application.DeleteFileInput{
 		FileID:   fileID,
 		BucketID: bucketID,
-		Key:      key,
+	
 	})
 	if err != nil {
+		fmt.Println()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -168,6 +166,7 @@ func (h *HandlerForFiles) UpdateFileMetadata(c *gin.Context) {
 	
 	output, err := h.uploadService.UpdateFileMetadata(c.Request.Context(), bucketID, fileID, input)
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -188,7 +187,13 @@ func (h *HandlerForFiles) CopyFile(c *gin.Context) {
 	}
 	
 	output, err := h.uploadService.CopyFile(c.Request.Context(), bucketID, fileID, input)
+	
+	fmt.Println(err)
+	
 	if err != nil {
+	
+	
+	
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 
@@ -17,6 +18,7 @@ func AllowedFileTypesMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		file, _, err := c.Request.FormFile("file")
 		if err != nil {
+			fmt.Println(err)
 			c.AbortWithStatusJSON(400, gin.H{"error": "No file uploaded"})
 			return
 		}

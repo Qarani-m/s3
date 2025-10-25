@@ -257,12 +257,7 @@ func (s *UploadService) CopyFile(ctx context.Context, sourceBucketID, fileID str
 	if newKey == "" {
 		newKey = file.Key
 	}
-	
-fmt.Println("=== CopyObject Debug ===")
-fmt.Println("Source bucket:", sourceBucket.Name)
-fmt.Println("Source key:", file.Key)
-fmt.Println("Destination bucket:", destBucket.Name)
-fmt.Println("Destination key:", newKey)
+ 
 
 
 

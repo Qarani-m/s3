@@ -136,7 +136,7 @@ func (m *MinIOAdapter) RenameBucket(ctx context.Context, oldName, newName string
     if err != nil {
         return fmt.Errorf("failed to remove old bucket: %w", err)
     }
-fmt.Println("-----------------s---dfdf>>>%W",na)
+ 
     return nil
 }
 
