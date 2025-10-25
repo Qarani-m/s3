@@ -211,6 +211,7 @@ func (s *UploadService) UpdateFileMetadata(ctx context.Context, bucketID, fileID
 	if err != nil {
 		return nil, fmt.Errorf("file not found: %w", err)
 	}
+		fmt.Println(err)
 	
 	if file.BucketID != bucket.ID {
 		return nil, fmt.Errorf("file not in specified bucket")
@@ -241,6 +242,8 @@ func (s *UploadService) CopyFile(ctx context.Context, sourceBucketID, fileID str
 	
 	destBucket, err := s.repository.GetBucketByName(ctx, input.DestinationBucket)
 	if err != nil {
+	fmt.Println(err)
+
 		return nil, fmt.Errorf("destination bucket not found: %w", err)
 	}
 	
@@ -297,14 +300,9 @@ func (s *UploadService) MoveFile(ctx context.Context, sourceBucketName, fileID s
 	
 	
 	sourceBucket, err := s.repository.GetBucketByID(ctx, sourceBucketName)
-	
-	   fmt.Println("=== MoveFile Debug ===")
-    fmt.Println("Source bucket name:", sourceBucketName)
+ 
     fmt.Println("File ID:", fileID)
-    // fmt.Println("Destination bucket ID:", input.DestinationBucketID)
-    // fmt.Println("New key:", input.NewKey)
-    // fmt.Println("Context:", ctx) // prints type info, not contents
-    // fmt.Println("======================")
+ 
 
 	
 	if err != nil {

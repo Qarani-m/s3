@@ -501,7 +501,7 @@ func (r *PostgresRepository) IncrementPolicyVersionAndUpdateBucket(ctx context.C
 
 func (r *PostgresRepository) GetBucketByName(ctx context.Context, name string) (domain.Bucket, error) {
 
-fmt.Println("---------------------->>>>s>%W",name)
+ 
 
 	query := `SELECT id, name, created_at, updated_at, policy FROM buckets WHERE name = $1`
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)

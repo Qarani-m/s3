@@ -42,7 +42,6 @@ func (h *BucketHandler) CreateBucket(c *gin.Context) {
 		errorString := fmt.Sprintf("bucket %s already exists", input.Name)
 		// Handle "bucket already exists" error using type assertion
 		if strings.Contains(err.Error(), errorString) {
-		fmt.Println("------------------------------------------------")
 
 			c.JSON(http.StatusConflict, gin.H{"": err.Error()})
 			return
@@ -97,7 +96,6 @@ func (h *BucketHandler) GetBucketInfo(c *gin.Context) {
 
 
 
-// ---------------------------------
 
 
 // UpdateBucket handles updating bucket settings
@@ -180,7 +178,6 @@ func (h *BucketHandler) UpdateBucketPolicy(c *gin.Context) {
     bucketID := c.Param("bucketId")
     var input dto.UpdatePolicyInput
     if err := c.ShouldBindJSON(&input); err != nil {
-		fmt.Println("-------------1%W",err)
 
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON payload: " + err.Error()})
         return
@@ -188,7 +185,6 @@ func (h *BucketHandler) UpdateBucketPolicy(c *gin.Context) {
 
     if err := h.bucketService.UpdateBucketPolicy(c.Request.Context(), bucketID, input, actor); err != nil {
        
-		fmt.Println("-----d--------1",err)
 		
 		if strings.Contains(err.Error(), "forbidden") {
             c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -244,7 +240,6 @@ func (h *BucketHandler) GetBucketVersioning(c *gin.Context) {
 func (h *BucketHandler) SetBucketLifecycle(c *gin.Context) {
     bucketID := c.Param("bucketId")
 
-fmt.Println	("-------------------------------------------p%w",bucketID)
     var input dto.SetLifecycleInput
     if err := c.ShouldBindJSON(&input); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON payload"})

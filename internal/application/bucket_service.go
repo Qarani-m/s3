@@ -128,29 +128,19 @@ func (s *BucketService) DeleteBucket(ctx context.Context, bucketID string) error
 		return fmt.Errorf("cannot delete bucket with files")
 	}
 	bucket, err := s.repo.GetBucketByName(ctx, bucketID)
- na:= fmt.Sprintf("bt-%s", bucket.Name)
-
-
-
-
-
-
+ 
 
 	if err != nil {
 		return fmt.Errorf("bucket not found: %w", err)
 	}
-	fmt.Println("------------fffff----dfdf>>>%W",na)
 
 
 	if err := s.storage.DeleteBucket(ctx,bucket.Name		); err != nil {
-		fmt.Println("--------------d=======>>>%W",na)
-		fmt.Println("--------------d=======>>>%W",err)
 
 
 		return fmt.Errorf("failed to delete from storage: %w", err)
 	}
 	if err := s.repo.DeleteBucket(ctx, bucketID); err != nil {
-		fmt.Println("--------------d====+++>>>%W",na)
 
 		return fmt.Errorf("failed to delete bucket: %w", err)
 	}
@@ -198,7 +188,6 @@ func (s *BucketService) UpdateBucketPolicy(ctx context.Context, bucketID string,
 	if err != nil {
 		return fmt.Errorf("bucket not found: %w", err)
 	}
-		fmt.Println("-----d--------31",  IsAdmin(actor) )
 
 	// Permission: only owner or admin can update
 	if actor != fmt.Sprintf("user:%s", bucket.OwnerID) && !IsAdmin(actor) {
@@ -252,7 +241,6 @@ func (s *BucketService) SetBucketVersioning(ctx context.Context, bucketID string
 	if err != nil {
 		return fmt.Errorf("bucket not found: %w", err)
 	}
-	fmt.Println("---*--")
 	if err := s.storage.SetBucketVersioning(ctx, bucket.Name, enabled); err != nil {
 		return fmt.Errorf("failed to set versioning: %w", err)
 	}

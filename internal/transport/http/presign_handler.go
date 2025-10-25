@@ -36,10 +36,7 @@ func (h *PresignHandler) GenerateUploadURL(c *gin.Context) {
 
 
 
-
-    	fmt.Println("---")
 	fmt.Println(input)
-	fmt.Println("---")
 
 
 	output, err := h.presignService.GenerateUploadURL(c.Request.Context(), input)

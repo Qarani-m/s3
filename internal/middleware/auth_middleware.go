@@ -17,8 +17,6 @@ type StaticAPIKeyValidator struct {
 }
 
 func (v *StaticAPIKeyValidator) ValidateAPIKey(key string) (string, error) {
-		fmt.Println("-------ss------1%w", key)
-		fmt.Println("-------ss------1%w", v.Keys)
 
     userID, ok := v.Keys["my-secret-api-key"]
     if !ok {

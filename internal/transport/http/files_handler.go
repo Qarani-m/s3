@@ -29,7 +29,6 @@ func NewFileHandler(
 // UploadFile handles file upload
 // POST /buckets/:bucketId/files
 func (h *HandlerForFiles) UploadFile(c *gin.Context) {
-	fmt.Println("---")
 	bucketID := c.Param("bucketId")
 
 	file, header, err := c.Request.FormFile("file")
@@ -58,7 +57,7 @@ func (h *HandlerForFiles) UploadFile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
+fmt.Println(output.FileID)
 	c.JSON(http.StatusCreated, gin.H{
 		"file_id":    output.FileID,
 		"key":        output.Key,
@@ -166,7 +165,6 @@ func (h *HandlerForFiles) UpdateFileMetadata(c *gin.Context) {
 	
 	output, err := h.uploadService.UpdateFileMetadata(c.Request.Context(), bucketID, fileID, input)
 	if err != nil {
-		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -188,10 +186,10 @@ func (h *HandlerForFiles) CopyFile(c *gin.Context) {
 	
 	output, err := h.uploadService.CopyFile(c.Request.Context(), bucketID, fileID, input)
 	
-	fmt.Println(err)
 	
 	if err != nil {
 	
+	fmt.Println("========================>",err)
 	
 	
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -215,6 +213,8 @@ func (h *HandlerForFiles) MoveFile(c *gin.Context) {
 	
 	output, err := h.uploadService.MoveFile(c.Request.Context(), bucketID, fileID, input)
 	if err != nil {
+		fmt.Println("======")
+		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
