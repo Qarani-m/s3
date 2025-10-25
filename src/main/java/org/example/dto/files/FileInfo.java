@@ -25,13 +25,13 @@ public class FileInfo {
     @JsonProperty("created_at")
     private String createdAt;
 
-    @JsonProperty("contentType")
+    @JsonProperty("content_type")
     private String contentType;
 
-    @JsonProperty("bucketId")
+    @JsonProperty("bucket_id")
     private String bucketId;
 
-    @JsonProperty("updatedAt")
+    @JsonProperty("updated_at")
     private String updatedAt;
 
     @JsonProperty("metadata")
@@ -40,7 +40,7 @@ public class FileInfo {
     @JsonProperty("version")
     private int version;
 
-    @JsonProperty("mimeType")
+    @JsonProperty("mime_type")
     private String mimeType;
 
 }

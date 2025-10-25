@@ -8,10 +8,10 @@ import org.example.http.HttpClient;
 import java.io.File;
 import java.util.List;
 
-public class FileClient {
+public class ObjectClient {
     private final HttpClient http;
 
-    public FileClient(HttpClient http) {
+    public ObjectClient(HttpClient http) {
         this.http = http;
     }
 
@@ -34,7 +34,7 @@ public class FileClient {
     /**
      * Get metadata of a single file
      */
-    public FileInfo get(String bucketId, String fileId) throws JsonProcessingException {
+    public FileInfo get(String bucketId, String fileId)  {
         return http.get("/api/v1/files/" + bucketId + "/files/" + fileId, FileInfo.class);
     }
 

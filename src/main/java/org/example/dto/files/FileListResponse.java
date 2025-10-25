@@ -10,5 +10,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FileListResponse {
     private List<FileInfo> files;
+    private String bucketId;
+    private int count;
 }
 

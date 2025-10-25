@@ -151,7 +151,6 @@ public class HttpClient implements AutoCloseable {
             throws ApiExceptions.ApiException {
         int attempts = 0;
         Exception lastException = null;
-
         while (attempts < MAX_RETRIES) {
             try {
                 request.setHeader("Content-Type", "application/json");
@@ -188,6 +187,7 @@ public class HttpClient implements AutoCloseable {
                 // Check if error is retryable
                 boolean shouldRetry = false;
                 if (e instanceof ApiExceptions.ApiException) {
+
                     shouldRetry = isRetryable(e);
                 } else {
                     shouldRetry = isRetryable(e);
@@ -218,12 +218,9 @@ public class HttpClient implements AutoCloseable {
                 }
             }
         }
-
         // Throw the last exception after exhausting retries
         if (lastException instanceof RuntimeException) {
             throw (RuntimeException) lastException;
-        } else if (lastException instanceof ApiExceptions.ApiException) {
-            throw (ApiExceptions.ApiException) lastException;
         } else {
             throw new RuntimeException("Request failed after " + MAX_RETRIES + " retries", lastException);
         }

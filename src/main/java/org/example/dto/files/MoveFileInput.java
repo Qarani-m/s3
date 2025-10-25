@@ -1,10 +1,11 @@
 package org.example.dto.files;
 
+import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
 @Data
-@RequiredArgsConstructor
+@Builder
 public class MoveFileInput {
     private String targetBucketId;
     private String targetKey;
